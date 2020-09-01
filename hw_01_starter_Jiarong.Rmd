@@ -1,0 +1,231 @@
+---
+title: "STAT 413/613 HW 1"
+author: "Jiarong Li"
+date: "`r Sys.Date()`"
+output:
+  html_document: 
+    number_sections: true
+urlcolor: blue
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.align  = "center",
+                      fig.height = 4, 
+                      fig.width  = 6)
+```
+
+# Canvas Picture, Syllabus, and Student Info
+Review the Syllabus on Canvas and answer the following questions:
+
+I, *Jiarong Li*  have:
+
+1. Added a photo of myself (headshot) to my Canvas profile
+
+2. Reviewed the syllabus and the associated policies on the following date: Aug 29, 2020
+
+3. Reviewed the American University policies on academic integrity, and understand how they apply to this course and  agree to comply with them for this course
+
+4. Filled in my information in the Student Info spreadsheet on Canvas collaborations
+
+# College Scorecard
+
+The data folder contains "college_score_200601.csv", a subset of the data in the [College Scorecard](https://collegescorecard.ed.gov/data/) database as of June 1, 2020. These data contain information on colleges in the United States. 
+The variables include:
+
+- `UNITID` and `OPEID`: Identifiers for the colleges.
+- `INSTNM`: Institution name
+- `ADM_RATE`: The Admission Rate.
+- `SAT_AVE`: Average SAT equivalent score of students admitted.
+- `UGDS`: Enrollment of undergraduate certificate/degree-seeking students
+- `COSTT4_A`: Average cost of attendance (academic year institutions)
+- `AVGFACSAL`: Average faculty salary
+- `GRAD_DEBT_MDN`: The median debt for students who have completed
+- `AGE_ENTRY`: Average age of entry
+- `ICLEVEL`: Level of institution (1 = 4-year, 2 = 2-year, 3 = less than 2-year).
+- `MN_EARN_WNE_P10`: Mean earnings of students working and not enrolled 10 years after entry.
+- `MD_EARN_WNE_P10`: Median earnings of students working and not enrolled 10 years after entry.
+- `FEMALE`: Share of female students
+- `PCT_WHITE`: Percent of the population from students' zip codes that is White, via Census data
+
+
+1. Use a relative path and a readr function to load the data from data/college_score_200601.csv into a tibble.
+```{r 1.1}
+library(tibble)
+library(ggplot2)
+library(ggthemes)
+library(tidyverse)
+college <- read.csv("~/Documents/Master/Semester-3/STAT-613/hw-01-jiarong0829/data/college_score_200601.csv", header = T)
+head(college)
+```
+2. If you used the default settings for reading in the data, 11 variables are probably type character when they should be numeric. 
+  + Which ones? 
+  + Why were they read in as type character? 
+
+They are: MN_EARN_WNE_P10, MD_EARN_WNE_P10, SAT_AVE, ADM_RATE, UGDS, COSTT4_A, GRAD_DEBT_MDN, AGE_ENTRY, FEMALE, PCT_WHITE, ICLEVEL.
+Because they have text like NULL or PrivacySuppressed in their column.
+
+3. Fix these variables to be numeric in the tibble.
+```{r 1.3}
+college <- read.csv("~/Documents/Master/Semester-3/STAT-613/hw-01-jiarong0829/data/college_score_200601.csv", header = T, na.strings = c("NULL", "PrivacySuppressed"))
+head(college)
+```
+4. How is average faculty salary associated the median earnings of students ten years after initial enrollment? Create an appropriate plot and interpret the plot to justify your answer.
+```{r 1.4}
+ggplot(data = college)+
+  geom_point(mapping = aes(x = MD_EARN_WNE_P10, y = AVGFACSAL))
+ggplot(data = college)+
+  geom_point(mapping = aes(x = log(MD_EARN_WNE_P10), y = AVGFACSAL))
+# From the plot below we can see that there is a positive relationship between meidan earnings of student working and not enrolled 10 years after entry and average faculty salary. Most of the median salary is below $50,000. After we log the median salary, this relationship is more stronger and easier to see.
+```
+5. Does the level of the institution seem to be associated with the median earnings of students ten years after enrollment? Reproduce this plot in R to explore this relationship and interpret the plot:
+```{r 1.5}
+ggplot(data = college)+
+  geom_boxplot(mapping = aes(x = as.factor(ICLEVEL), y = log(MD_EARN_WNE_P10)))+
+  labs(x = "Level of Institution", y = "Log of Median Earnings", title = "Median Ernings 10 Years after Enrollment by Level of Institution")
+# Yes, it seems to jave association between the level of the institution and the median earnings of students ten years after enrollment. From the boxplot we can see that with the level of institution increase, the median earning is decreasing. In other words, if a person have more years attend to school, he/she will earn more 10 years after enrollment.
+```
+6. Plot the log of median earnings 10 years after enrollment for level 1 institutions as the Y axis against PCT_WHITE and, in a second plot, against FEMALE.  
+- Describe the relationship if any in each of the plots.
+```{r 1.6}
+college1 <- college %>%
+  filter(ICLEVEL == 1)
+ggplot(data = college1)+
+  geom_point(mapping = aes(x = PCT_WHITE, y = log(MD_EARN_WNE_P10)))
+ggplot(data = college1)+
+  geom_point(mapping = aes(x = FEMALE, y = log(MD_EARN_WNE_P10)))
+# From the first plot, we can see that the PCT_white and median earning s of student working and not enrolled 10 years after entry (ICLEVEL 1) has positive relationship.
+# From the second plot, however, we cannot see any relationship between this two variables. This is because the points are scattered evenly and randomly.
+```
+7. Create a scatter plot of the log of mean earnings 10 years after enrollment (Y) axis) compared to the log of median earnings 10 years after enrollment (X axis).  
+  + Include an abline. 
+  + Interpret the plot.
+```{r 1.7}
+ggplot(data = college1)+
+  geom_point(mapping = aes(x = log(MD_EARN_WNE_P10), y = log(MN_EARN_WNE_P10)))+
+  geom_smooth(method = lm, aes(x = log(MD_EARN_WNE_P10), y = log(MN_EARN_WNE_P10)))
+# From the plot we can see there is a positive relationship between log median earning of students working and not enrolled 10 years after entry and Mean earnings of students working and not enrolled 10 years after entry. In other words, with the increase of the median earning, the mean earning will also increase.
+```
+8. Compute a ranking of level 1 universities based on the ratio of median earnings 10 years after enrollment compared to median graduation debt.   
+  + Identify the top 5 best and the bottom 5 worst? 
+  + What is American University's rank? 
+- Extra Credit: 
+  + Reproduce the following plot so the AU line adjusts as the data adjusts:
+  + What is AU's new ranking if the mean earnings are used?
+```{r 1.8}
+collegerank <- na.omit(college1 %>%
+  mutate(RATIO_EARNINGS_DEBT = MD_EARN_WNE_P10/GRAD_DEBT_MDN)%>% 
+  select(INSTNM, RATIO_EARNINGS_DEBT)%>%
+  arrange(desc(RATIO_EARNINGS_DEBT)))
+head(collegerank)
+tail(collegerank)
+
+collegerank %>%
+  mutate(rank = order(-RATIO_EARNINGS_DEBT)) %>%
+  filter(INSTNM == "American University")
+
+# top 5 best: SUNY Downstate Health Sciences University, California Institute of Technology, Saint Augustine College, Massachusetts Institute of Technology.
+# bottom 5 worst: Martin University, Messenger College, Benedict College, 	Southwest University of Visual Arts-Albuquerque, Southwest University of Visual Arts-Tucson.
+# The American University's rank is 402.
+
+# Extra Credit:
+ggplot(data = collegerank)+
+  geom_histogram(mapping = aes(x = RATIO_EARNINGS_DEBT),binwidth = 0.2)+
+  geom_vline(aes(xintercept = 2.619375), colour = 'red', linetype = 'dashed')+
+  annotate("text", x = 2.2, y = -15, label = "AU", colour = 'red', size = 12)+
+  labs(x = "ROI", title = "Ratio Of Median Earnings 10 Years after Enrollment
+to Median Debt at Graduation 
+(data for 2293 level 1 Institutions as of 06/01/2020)")
+```
+
+# World Bank Data
+
+The World Bank provides loans to countries with the goal of reducing poverty. The dataframes in the data folder were taken from the public data repositories of the World Bank.
+
+- country.csv: Contains information on the countries in the data set. 
+  + The variables are:
+    - `Country_Code`: A three-letter code for the country. Note not all rows are countries; some are regions.
+    - `Region`: The region of the country.
+    - `IncomeGroup`: Either `"High income"`, `"Upper middle income"`, `"Lower middle income"`, or `"Low income"`.
+    - `TableName`: The full name of the country.  
+
+- fertility.csv: Contains the fertility rate information for each country for each year. 
+  + For the variables `1960` to `2017`, the values in the cells represent the fertility rate in total births per woman for that year. 
+  + Total fertility rate represents the number of children that would be born to a woman if she were to live to the end of her  childbearing years and bear children in accordance with age-specific fertility rates of the specified year.   
+
+- life_exp.csv: Contains the life expectancy information for each country for each year. 
+  + For the variables `1960` to `2017`, the values in the cells represent life expectancy at birth in years for the given year. 
+  + Life expectancy at birth indicates the number of years a newborn infant would live if prevailing patterns of mortality at the time of its birth were to stay the same throughout its life.  
+
+- population.csv: Contains the population information for each country. 
+  + For the variables `1960` to `2017`, the values in the cells represent the total population in number of people for the given year. 
+  + Total population is based on the de facto definition of population, which counts all residents regardless of legal status or citizenship. The values shown are midyear estimates.
+
+1. Use relative paths and a readr function to load these files into four tibbles.  
+```{r 2.1}
+country <- read.csv("~/Documents/Master/Semester-3/STAT-613/hw-01-jiarong0829/data/country.csv", header = T, check.names = F, na.strings = "")
+fertility <- read.csv("~/Documents/Master/Semester-3/STAT-613/hw-01-jiarong0829/data/fertility.csv", header = T, check.names = F)
+life_exp <- read.csv("~/Documents/Master/Semester-3/STAT-613/hw-01-jiarong0829/data/life_exp.csv", header = T, check.names = F)
+population <- read.csv("~/Documents/Master/Semester-3/STAT-613/hw-01-jiarong0829/data/population.csv", header = T, check.names = F)
+```
+2. These data are messy. The observational units in `fert`, `life`, and `pop` are locations in space-time (e.g. Aruba in 2017). Recall tidy data should have one observational unit per row.  
+  - Tidy these three tibbles.
+  - Make sure the variable for `year` is a numeric.  
+```{r 2.2}
+fertility1 <- fertility %>%
+  gather(key = "year", value = "fertility", 3:61) %>%
+  mutate(year = as.numeric(year))
+life_exp1 <- life_exp %>%
+  gather(key = "year", value = "life_exp", 3:61) %>%
+  mutate(year = as.numeric(year))
+population1 <- population %>%
+  gather(key = "year", value = "population", 3:61) %>%
+  mutate(year = as.numeric(year))
+```
+3. Combine the tibbles to create a new tibble which includes the fertility rate, population, and life expectancy in each year as well as the region for each country.
+```{r 2.3}
+country_loan <- full_join(country, full_join(full_join(life_exp1, fertility1, by = c("Country Name", "Country Code", "year")), population1, by = c("Country Name", "Country Code", "year")), by = "Country Code")
+country_loan <- na.omit(country_loan)
+view(country_loan)
+```
+4. Make a scatterplot of fertility rate vs life expectancy, color-coding by region and annotating size by the population.  
+  + Include only the years 1960, 1970, 1980, 1990, 2000, and 2010. 
+  + Facet by these years.
+  + Your final plot should look like this (Each element of the formatting is graded):
+  + Hint: use `ggthemes`
+  + **Interpret the plot in one sentence**.
+```{r 2.4}
+country_loan1 <- country_loan %>%
+  filter(year == 1960 | year==1970 | year == 1980 | year == 1990 | year == 2000 | year == 2010)
+ggplot(data = country_loan1)+
+  geom_point(mapping = aes(x = life_exp, y = fertility, color = Region, size = population))+
+  facet_wrap(~year)+
+  labs(x = "Life Expectancy", y = "Fertility Rate", title = "Changes by Region across Decades")+
+  scale_colour_colorblind()
+# From the plot we can see the with the increase of the life expectancy, the fertility rate will decrease.
+```   
+5. Calculate the total population for each region for each year.  
+  + Exclude 2018.  
+  + Make a line plot of year versus log of total population, color-coding by region.
+  + Your final plot should look like this:
+  + **Interpret the plot in one sentence**.
+```{r 2.5}
+RegionPopulation <- country_loan %>%
+  group_by(Region, year) %>%
+  summarise(totalpopulation = sum(population))
+ggplot(data = RegionPopulation) +
+  geom_line(mapping = aes(x = year, y = totalpopulation, group = Region, color = Region))+
+  scale_y_log10()
+# From the plot we can see there are more and more populationfrom 1960 to 2017.
+```   
+6. Make a bar plot of population vs region for the year 2017.  
+  + Order the bars on the $y$-axis in **decreasing** order of population. 
+  + Your final plot should look like this:
+```{r 2.6}
+population2017 <- RegionPopulation %>%
+  filter(year == 2017)
+ggplot(data = population2017) +
+  geom_bar(mapping = aes(x = reorder(Region, -totalpopulation), y = totalpopulation), stat = "identity")+
+  coord_flip()+
+  labs(x = "Region", y = "Total Population", title = "2017 Population by Region")
+``` 
+ 
